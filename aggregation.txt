@@ -1,0 +1,62 @@
+db.students.aggregate([
+  
+    {$unwind: "$scores"},
+    { $match: {"scores.type" : "exam"}},
+    {
+        $addFields: {
+            "examFinalScore" : {
+                $round: ["$scores.score", 2]
+            }
+        }
+    },
+    {
+        $project: {name : 1, examFinalScore : 1}
+    },
+     {
+        $addFields: {
+            "Grade" : {
+               $switch: {
+                 branches: [
+                    { case:  {$lt: ["$examFinalScore", 33]}, then: "B" },
+                    { case:  {$lt: ["$examFinalScore",40]}, then: "B+" },
+                    { case:  {$lt: ["$examFinalScore", 60]}, then: "A-" },
+                    { case:  {$lt: ["$examFinalScore", 70]}, then: "A" },
+                    { case:  {$lte: ["$examFinalScore", 80]}, then: "A+" },
+                    { case:  {$gte: ["$examFinalScore", 90]}, then: "Golden A+" },
+                   
+                   
+                 ],
+                 default: " Tui Fail"
+               }
+            }
+        }
+    },
+        {
+        $sort : { examFinalScore : -1}
+    },
+
+    // {$match: {
+    //     Grade : "A+"
+    // }},
+    // { $group: { _id: "null", 
+    //     AverageMarkPaicheTara : {
+    //         $avg :{$round:  ["$examFinalScore"]}
+    //     }
+        
+    // }
+        
+    // },
+    // {$project: {AverageMarkPaicheTara : 1, _id :false}}
+    {
+   $setWindowFields: {
+    //  partitionBy: "$state",
+     sortBy: { examFinalScore: - 1 },
+     output: {
+         position : {
+             $rank : {}
+         }
+     }
+   }
+    },
+    {$out :"FinalScore"}
+    ])
